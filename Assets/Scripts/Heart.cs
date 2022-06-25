@@ -4,9 +4,12 @@ using System.Linq;
 using Licht.Impl.Memory;
 using Licht.Impl.Orchestration;
 using Licht.Unity.Objects;
+using Licht.Unity.Pooling;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Random = UnityEngine.Random;
 
 public class Heart : BaseGameObject
 {
@@ -14,28 +17,37 @@ public class Heart : BaseGameObject
     public int Bpm { get; private set; }
     public int TargetBpm { get; private set; }
     public bool Flatlined { get; private set; }
-    
+    public bool Deceased { get; private set; }
+
+    public bool IsDefibrillating { get; private set; }
+
     public Animator Animator;
     public TMP_Text TargetBpmText;
     public TMP_Text BpmText;
-
+    public ItemCounter Defibrillator;
     public Transform SpacebarTutorial;
     public SpriteRenderer HeartSprite;
     public TMP_Text HeartCaption;
     public TMP_Text BpmCaption;
     public Transform HelpWidget;
+    public TMP_Text HeartStatus;
 
     public float MaximumTimeBetweenBeatsInMs;
     public float SameBeatMaxDelayInMs;
-    public float SameBeatIdealDelayInMs;
     public float SameBeatIdealDelayTolerance;
     public float SameBeatGoodDelayTolerance;
     public float SameBeatBadDelayTolerance;
 
+    public ScriptPrefab DefibSpark;
+
+    public bool EnableEffects { get; private set; }
+    public bool EnableDefibrillator { get; private set; }
+    public bool EnableDeceasing { get; private set; }
+
     public bool IsBlocked { get; private set; }
 
     public int BpmTargetTolerance;
-                              
+
     public float BpmUpdateInSeconds;
     public int MinBpmToShow;
 
@@ -45,15 +57,18 @@ public class Heart : BaseGameObject
     private Caterpillar<(double, double)> _beats;
     private PlayerInput _playerInput;
     private TextBox _textBox;
+    private ColorDefaults _colorDefaults;
 
     private const string LeftBeatTrigger = "LeftBeat"; // Lub
     private const string RightBeatTrigger = "RightBeat"; // Dub
+    private readonly Color Transparent = new Color(0, 0, 0, 0);
 
     protected override void OnAwake()
     {
         base.OnAwake();
         _playerInput = PlayerInput.GetPlayerByIndex(0);
         _textBox = SceneObject<TextBox>.Instance();
+        _colorDefaults = SceneObject<ColorDefaults>.Instance();
     }
 
     private void OnEnable()
@@ -79,12 +94,13 @@ public class Heart : BaseGameObject
 
     public IEnumerable<IEnumerable<Action>> PlayTutorial()
     {
-        HeartSprite.enabled = HeartCaption.enabled = BpmText.enabled = BpmCaption.enabled = TargetBpmText.enabled = false;
+        EnableEffects = false;
+        HeartSprite.enabled = HeartStatus.enabled = HeartCaption.enabled = BpmText.enabled = BpmCaption.enabled = TargetBpmText.enabled = false;
         SpacebarTutorial.gameObject.SetActive(true);
         HelpWidget.gameObject.SetActive(false);
         yield return _textBox.ShowText("How was the sound of your beating heart?", false).AsCoroutine();
 
-        checkBeats:
+    checkBeats:
         while (_beats.Length != _beats.TailSize || Bpm == 0)
         {
             yield return TimeYields.WaitOneFrameX;
@@ -95,6 +111,17 @@ public class Heart : BaseGameObject
         HeartSprite.enabled = true;
 
         Debug.Log("Current BPM: " + Bpm);
+
+        if (Bpm < 50)
+        {
+            yield return _textBox.ShowText("To simulate the living, this heart of yours needs to beat a bit faster...", false).AsCoroutine();
+
+            _beats.Clear();
+
+            goto checkBeats;
+        }
+
+
         if (Bpm < 50)
         {
             yield return _textBox.ShowText("To simulate the living, this heart of yours needs to beat a bit faster...", false).AsCoroutine();
@@ -146,7 +173,7 @@ public class Heart : BaseGameObject
         yield return TimeYields.WaitSeconds(GameTimer, 2);
         yield return _textBox.ShowText("Try adjusting your heart rate to the target. Or close enough.", false).AsCoroutine();
 
-        matchTarget:
+    matchTarget:
         while (_beats.Length != _beats.TailSize || Bpm == 0)
         {
             yield return TimeYields.WaitOneFrameX;
@@ -172,7 +199,6 @@ public class Heart : BaseGameObject
             yield return _textBox
                 .ShowText("Once again. Try to adjust your heart rate to the target. Approximately.", false)
                 .AsCoroutine();
-            _beats.Clear();
             goto matchTarget;
         }
 
@@ -187,16 +213,85 @@ public class Heart : BaseGameObject
             goto matchTarget;
         }
 
-        yield return _textBox.ShowText("Done! You can stop for a little bit now.",false).AsCoroutine();
+        SetTargetBpm(0);
+
+        yield return _textBox.ShowText("Great! Now, as things don't always go as planned...", false).AsCoroutine();
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
+        yield return _textBox.ShowText("(You're here after all, ain't you)", false).AsCoroutine();
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
+
+    defibrillating:
+
+        HeartStatus.text = $"<color=#{_colorDefaults.Healthy.Color.ToHexString()}>Healthy";
+        EnableDefibrillator = false;
+        EnableDeceasing = false;
+        Deceased = false;
+
+        yield return _textBox.ShowText("Flatlining isn't always game over. ", false).AsCoroutine();
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
+
+        Defibrillator.GiveItem(1);
+        HeartCaption.enabled = true;
+        HeartStatus.enabled = true;
+
+        yield return _textBox.ShowText("If you happen to have a defibrillator...", false).AsCoroutine();
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
+
+        yield return _textBox.ShowText("It will give you a short time window to kick start your heart again.", false).AsCoroutine();
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
+
+        if (Flatlined)
+        {
+            yield return _textBox.ShowText("By the way, your heart is not beating right now.", false).AsCoroutine();
+            yield return TimeYields.WaitSeconds(GameTimer, 2);
+
+            yield return _textBox.ShowText("Start beating again.", false).AsCoroutine();
+            yield return TimeYields.WaitSeconds(GameTimer, 2);
+
+            while (Flatlined)
+            {
+                yield return TimeYields.WaitOneFrameX;
+            }
+        }
+
+        yield return _textBox.ShowText("Now, give it a shot. Stop beating your heart.", false).AsCoroutine();
+        EnableDefibrillator = true;
+        EnableDeceasing = true;
+
+        yield return TimeYields.WaitSeconds(GameTimer, 1);
+        while (!Flatlined)
+        {
+            yield return TimeYields.WaitOneFrameX;
+        }
+
+        yield return TimeYields.WaitSeconds(GameTimer, 1);
+        yield return _textBox.ShowText("The defibrillator has been used! Now, start your heart again!", false).AsCoroutine();
+
+        while (Flatlined)
+        {
+            yield return TimeYields.WaitOneFrameX;
+            if (!IsDefibrillating)
+            {
+                yield return _textBox.ShowText("Oh, you died for good. Again. Let's try it once more.", false).AsCoroutine();
+                yield return TimeYields.WaitSeconds(GameTimer, 2);
+
+                goto defibrillating;
+            }
+        }
+
+        yield return _textBox.ShowText("Done! You can stop for a little bit now.", false).AsCoroutine();
         IsBlocked = true;
 
         yield return TimeYields.WaitSeconds(GameTimer, 2);
 
-        HeartCaption.enabled = true;
         SetTargetBpm(0);
         yield return _textBox.ShowText("These are the basics of the purgatory. For now.").AsCoroutine();
+        yield return _textBox.ShowText("One last thing. Timing your heart correctly will pay off.").AsCoroutine();
         yield return _textBox.ShowText("You're going to face different challenges, and must act accordingly.").AsCoroutine();
-        yield return _textBox.ShowText("I'll give you some time to kick start your heart again.").AsCoroutine();
+        yield return _textBox.ShowText("Here's a couple defibrillators. Please don't die on me now.").AsCoroutine();
+
+        Defibrillator.GiveItem(2);
+        yield return _textBox.ShowText("I'll also give you some time to kick start your heart again. Good Luck!").AsCoroutine();
 
         IsBlocked = false;
 
@@ -217,6 +312,8 @@ public class Heart : BaseGameObject
     private IEnumerable<IEnumerable<Action>> HandleBeatInput()
     {
         var action = _playerInput.actions[HeartBeatInput.ActionName];
+        var secondBeatTime = 0d;
+        var beatDelay = 0d;
         while (isActiveAndEnabled)
         {
             if (IsBlocked)
@@ -229,10 +326,37 @@ public class Heart : BaseGameObject
                 yield return TimeYields.WaitOneFrameX;
             }
 
-            if (action.WasPerformedThisFrame())
+            if (action.WasPerformedThisFrame() && !Deceased)
             {
                 var firstBeatTime = GameTimer.TotalElapsedTimeInMilliseconds;
-                var secondBeatTime = 0d;
+
+                if (secondBeatTime != 0)
+                {
+                    var elapsed = firstBeatTime - secondBeatTime;
+                    Debug.Log("beat delay ms: " + beatDelay);
+                    Debug.Log("delay ms: " + elapsed);
+                    if (elapsed <= beatDelay + SameBeatIdealDelayTolerance &&
+                        elapsed >= beatDelay - SameBeatIdealDelayTolerance)
+                    {
+                        Debug.Log("perfect");
+                        // perfect
+                    }
+                    else if (elapsed <= beatDelay + SameBeatGoodDelayTolerance &&
+                             elapsed >= beatDelay - SameBeatGoodDelayTolerance)
+                    {
+                        Debug.Log("good");
+                        // good
+                    }
+                    else if (elapsed <= beatDelay + SameBeatBadDelayTolerance &&
+                             elapsed >= beatDelay - SameBeatBadDelayTolerance)
+                    {
+                        Debug.Log("bad");
+                        // bad
+                    }
+                    // failed beat (what to do in this case?)
+                }
+
+                secondBeatTime = 0d;
                 Animator.SetTrigger(LeftBeatTrigger);
                 if (LeftBeat != null) LeftBeat.Play();
                 var secondBeat = false;
@@ -247,34 +371,65 @@ public class Heart : BaseGameObject
                         secondBeat = true;
                         secondBeatTime = GameTimer.TotalElapsedTimeInMilliseconds;
 
+                        beatDelay = elapsed * 3;
+
                         if (RightBeat != null) RightBeat.Play();
-
-                        if (elapsed <= SameBeatIdealDelayInMs + SameBeatIdealDelayTolerance &&
-                            elapsed >= SameBeatIdealDelayInMs - SameBeatIdealDelayTolerance)
-                        {
-                            Debug.Log("perfect");
-                            // perfect
-                        }
-                        else if (elapsed <= SameBeatIdealDelayInMs + SameBeatGoodDelayTolerance &&
-                                 elapsed >= SameBeatIdealDelayInMs - SameBeatGoodDelayTolerance)
-                        {
-                            Debug.Log("good");
-                            // good
-                        }
-                        else if (elapsed <= SameBeatIdealDelayInMs + SameBeatBadDelayTolerance &&
-                                 elapsed >= SameBeatIdealDelayInMs - SameBeatBadDelayTolerance)
-                        {
-                            Debug.Log("bad");
-                            // bad
-                        }
-                        // failed beat (what to do in this case?)
-
                     }
                 }, () => secondBeat || IsBlocked);
 
                 _beats.Current = (firstBeatTime, secondBeatTime);
             }
             yield return TimeYields.WaitOneFrameX;
+        }
+    }
+
+    private IEnumerable<IEnumerable<Action>> DefibEffect()
+    {
+        while (IsDefibrillating)
+        {
+            const float randomVariation = 360f / 8 * 0.20f;
+            if (DefibSpark.Pool.TryGetManyFromPool(8, out var objs))
+            {
+                for (var i = 0; i < objs.Length; i++)
+                {
+                    if (Random.value > 0.5f)
+                    {
+                        yield return TimeYields.WaitMilliseconds(GameTimer, 25);
+                        continue;
+                    }
+
+                    var obj = objs[i];
+                    obj.Component.transform.position = HeartSprite.transform.position;
+                    obj.Component.transform.localRotation = Quaternion.identity;
+                    obj.Component.transform.Rotate(Vector3.forward, randomVariation + (i * 360f / objs.Length), Space.Self);
+                    DefaultMachinery.AddBasicMachine(MoveEffect(obj));
+                    yield return TimeYields.WaitMilliseconds(GameTimer, 25);
+                }
+            }
+
+            yield return TimeYields.WaitMilliseconds(GameTimer, 200);
+        }
+    }
+
+    private IEnumerable<IEnumerable<Action>> MoveEffect(IPoolableComponent obj)
+    {
+        while (IsDefibrillating && obj.IsActive)
+        {
+            obj.Component.transform.Translate(new Vector2(-1,1) * (0.5f + Random.value *0.5f) * (float)GameTimer.UpdatedTimeInMilliseconds * 0.00125f);
+            yield return TimeYields.WaitOneFrameX;
+        }
+    }
+
+    private IEnumerable<IEnumerable<Action>> Defibrillate()
+    {
+        DefaultMachinery.AddBasicMachine(DefibEffect());
+        yield return TimeYields.WaitSeconds(GameTimer, 12, breakCondition: () => !Flatlined);
+
+        IsDefibrillating = false;
+        HeartSprite.material.SetColor("_Colorize", Transparent);
+        if (!Flatlined)
+        {
+            HeartStatus.text = $"<color=#{_colorDefaults.Healthy.Color.ToHexString()}>Healthy";
         }
     }
 
@@ -288,6 +443,12 @@ public class Heart : BaseGameObject
             {
                 BpmText.text = "--";
                 Flatlined = true;
+
+                if (_beats.Length == _beats.TailSize && EnableDeceasing)
+                {
+                    HandleFlatline();
+                }
+
                 yield return TimeYields.WaitSeconds(GameTimer, BpmUpdateInSeconds);
 
                 currentTime = GameTimer.TotalElapsedTimeInMilliseconds;
@@ -295,14 +456,40 @@ public class Heart : BaseGameObject
 
             Bpm = (int)Math.Round(_beats.GetTail(5)
                 .Reverse()
-                .Select(beat => (beat.Item1 + beat.Item2) * 0.0005d)
+                .Select(beat => beat.Item2 == 0 ? beat.Item1 * 0.001d : (beat.Item1 + beat.Item2) * 0.0005d)
                 .Pairwise()
                 .Sum(pair => 60d / (pair.Item2 - pair.Item1)) / 4d, MidpointRounding.AwayFromZero);
 
             BpmText.text = Bpm < MinBpmToShow ? "--" : Bpm.ToString();
             Flatlined = Bpm < MinBpmToShow;
 
+            if (Flatlined && EnableDeceasing)
+            {
+                HandleFlatline();
+            }
+
             yield return TimeYields.WaitSeconds(GameTimer, BpmUpdateInSeconds);
+        }
+    }
+
+    private void HandleFlatline()
+    {
+        if (EnableDefibrillator && Defibrillator.UseItem())
+        {
+            if (IsDefibrillating) return;
+            // used defibrillator
+            Debug.Log("used defibrillator");
+            IsDefibrillating = true;
+            Deceased = false;
+            _beats.Clear();
+            HeartStatus.text = $"<color=#{_colorDefaults.Recharging.Color.ToHexString()}>Defibrillating";
+            HeartSprite.material.SetColor("_Colorize", _colorDefaults.Recharging.Color);
+            DefaultMachinery.AddBasicMachine(Defibrillate());
+        }
+        else if (!IsDefibrillating)
+        {
+            Deceased = true;
+            HeartStatus.text = $"<color=#{_colorDefaults.Danger.Color.ToHexString()}>Flatlined";
         }
     }
 }
