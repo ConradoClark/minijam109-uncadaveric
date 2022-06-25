@@ -38,17 +38,6 @@
                 },
                 {
                     "name": "",
-                    "id": "852108c0-c717-4ff3-a380-26f83e115a63",
-                    "path": "<Keyboard>/space",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Keyboard & Mouse",
-                    "action": "Confirm",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "ab3315e7-3b64-42d2-b86d-02ef79dcab4f",
                     "path": "<Keyboard>/enter",
                     "interactions": "",

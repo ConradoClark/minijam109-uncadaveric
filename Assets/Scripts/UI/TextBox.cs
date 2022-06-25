@@ -24,9 +24,9 @@ public class TextBox : BaseUIObject
     }
 
 
-    public IEnumerable<IEnumerable<Action>> ShowText(string text)
+    public IEnumerable<IEnumerable<Action>> ShowText(string text, bool showCursor = true)
     {
-        CursorSprite.enabled = false;
+        CursorSprite.enabled = showCursor;
         TextComponent.text = "";
 
         var confirm = _playerInput.actions[ConfirmButton.ActionName];
@@ -37,25 +37,28 @@ public class TextBox : BaseUIObject
             TextComponent.text = text[..i];
             i++;
             yield return TimeYields.WaitMilliseconds(UITimer, LetterFrequencyInMs,
-                breakCondition: () => Skippable && confirm.WasPerformedThisFrame());
+                breakCondition: () => showCursor && Skippable && confirm.WasPerformedThisFrame());
 
             // Skip
-            if (Skippable && confirm.WasPerformedThisFrame())
+            if (showCursor && Skippable && confirm.WasPerformedThisFrame())
             {
                 TextComponent.text = text;
             }
         }
 
-        CursorSprite.enabled = true;
-        yield return TimeYields.WaitOneFrameX;
-
-        while (!confirm.WasPerformedThisFrame())
+        if (showCursor)
         {
+            CursorSprite.enabled = true;
             yield return TimeYields.WaitOneFrameX;
-        }
 
-        TextComponent.text = "";
-        CursorSprite.enabled = false;
+            while (!confirm.WasPerformedThisFrame())
+            {
+                yield return TimeYields.WaitOneFrameX;
+            }   
+
+            TextComponent.text = "";
+            CursorSprite.enabled = false;
+        }
 
         yield return TimeYields.WaitOneFrameX;
     }
