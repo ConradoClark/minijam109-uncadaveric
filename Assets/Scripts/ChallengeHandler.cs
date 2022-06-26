@@ -1,13 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Licht.Impl.Generation;
 using Licht.Impl.Orchestration;
 using Licht.Interfaces.Generation;
 using Licht.Interfaces.Update;
 using Licht.Unity.Objects;
-using Microsoft.Unity.VisualStudio.Editor;
-using UnityEngine;
 using Random = UnityEngine.Random;
 
 public class ChallengeHandler : BaseGameObject, IGenerator<int,float>, IActivable

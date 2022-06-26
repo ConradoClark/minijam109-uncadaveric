@@ -14,6 +14,8 @@ public abstract class BaseChallenge : BaseGameObject, IWeighted<float>
     protected Heart Heart;
     protected ChallengeComponents UIComponents;
     protected ColorDefaults ColorDefaults;
+    protected TextBox TextBox;
+    protected ActivityClock ActivityClock;
 
     protected sealed override void OnAwake()
     {
@@ -21,6 +23,8 @@ public abstract class BaseChallenge : BaseGameObject, IWeighted<float>
         Heart = SceneObject<Heart>.Instance(true);
         UIComponents = SceneObject<ChallengeComponents>.Instance();
         ColorDefaults = SceneObject<ColorDefaults>.Instance();
+        TextBox = SceneObject<TextBox>.Instance();
+        ActivityClock = SceneObject<ActivityClock>.Instance();
     }
 
     public abstract IEnumerable<IEnumerable<Action>> HandleChallenge();
