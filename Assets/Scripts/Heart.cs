@@ -383,8 +383,6 @@ public class Heart : BaseGameObject
                 if (secondBeatTime != 0)
                 {
                     var elapsed = firstBeatTime - secondBeatTime;
-                    Debug.Log("beat delay ms: " + beatDelay);
-                    Debug.Log("delay ms: " + elapsed);
                     if (elapsed <= beatDelay + SameBeatIdealDelayTolerance &&
                         elapsed >= beatDelay - SameBeatIdealDelayTolerance)
                     {

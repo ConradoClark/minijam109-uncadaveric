@@ -8,6 +8,7 @@ using UnityEngine;
 
 public class BeatLine : BaseGameObject
 {
+    public SpriteRenderer BeatLineSprite;
     public SpriteRenderer BeatLineMark;
     public SpriteRenderer BeatLineTarget;
 
@@ -23,7 +24,8 @@ public class BeatLine : BaseGameObject
     private void OnEnable()
     {
         _heart.OnSecondBeat += Heart_OnSecondBeat;
-        _heart.OnFirstBeat += Heart_OnFirstBeat; 
+        _heart.OnFirstBeat += Heart_OnFirstBeat;
+        DefaultMachinery.AddBasicMachine(HandleBeatLine());
         DefaultMachinery.AddBasicMachine(HandleMarkMovement());
     }
 
@@ -32,6 +34,16 @@ public class BeatLine : BaseGameObject
         _heart.OnSecondBeat -= Heart_OnSecondBeat;
         _heart.OnFirstBeat -= Heart_OnFirstBeat;
     }
+
+    private IEnumerable<IEnumerable<Action>> HandleBeatLine()
+    {
+        while (isActiveAndEnabled)
+        {
+            BeatLineSprite.enabled = BeatLineMark.enabled = BeatLineTarget.enabled = _heart.EnableDeceasing && !_heart.Flatlined && !_heart.IsDefibrillating;
+            yield return TimeYields.WaitMilliseconds(GameTimer, 100);
+        }
+    }
+
     private void Heart_OnFirstBeat(Heart.BeatResult obj)
     {
         if (_heart.Flatlined) return;
