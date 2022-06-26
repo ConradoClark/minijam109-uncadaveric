@@ -8,24 +8,34 @@ using UnityEngine;
 public class StartCutscene : BaseUIObject
 {
     public Heart Heart;
+    public ScriptTrigger SkipTutorial;
     private TextBox _textBox;
-
-
-
+    private ChallengeHandler _challengeHandler;
     protected override void OnAwake()
     {
         base.OnAwake();
         _textBox = SceneObject<TextBox>.Instance();
+        _challengeHandler = SceneObject<ChallengeHandler>.Instance();
     }
 
     private void OnEnable()
     {
-        DefaultMachinery.AddBasicMachine(ShowCutscene());
+        if (SkipTutorial.Triggered)
+        {
+            DefaultMachinery.AddBasicMachine(SkipCutscene());
+        }
+        else
+        {
+            DefaultMachinery.AddBasicMachine(ShowCutscene());
+        }
     }
 
     private IEnumerable<IEnumerable<Action>> SkipCutscene()
     {
-        yield break;
+        Heart.Activate();
+        yield return Heart.SkipTutorial().AsCoroutine();
+
+        _challengeHandler.Activate();
     }
 
     private IEnumerable<IEnumerable<Action>> ShowCutscene()
@@ -45,6 +55,6 @@ public class StartCutscene : BaseUIObject
         Heart.Activate();
         yield return Heart.PlayTutorial().AsCoroutine();
 
-
+        _challengeHandler.Activate();
     }
 }

@@ -4,17 +4,25 @@ using System.Collections.Generic;
 using Licht.Impl.Generation;
 using Licht.Impl.Orchestration;
 using Licht.Interfaces.Generation;
+using Licht.Interfaces.Update;
 using Licht.Unity.Objects;
 using Microsoft.Unity.VisualStudio.Editor;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-public class ChallengeHandler : BaseGameObject, IGenerator<int,float>
+public class ChallengeHandler : BaseGameObject, IGenerator<int,float>, IActivable
 {
     public BaseChallenge[] Challenges;
 
     private Heart _heart;
     public bool IsActive { get; private set; }
+    public bool Activate()
+    {
+        if (IsActive) return false;
+
+        IsActive = true;
+        return true;
+    }
 
     protected override void OnAwake()
     {

@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -972327683, guid: faefa1e65be0f904a931a358d3b3d775, type: 3}
+  m_Name: TimingTextPool
+  m_EditorClassIdentifier: 
+  Prefab: {fileID: 1201471587139728990, guid: 6f461d786872a92459e4f5272519de2d, type: 3}
+  DefaultPoolSize: 30
+  Type: 0

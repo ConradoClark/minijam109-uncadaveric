@@ -39,25 +39,41 @@ public class Heart : BaseGameObject
     public float SameBeatBadDelayTolerance;
 
     public ScriptPrefab DefibSpark;
+    public ScriptPrefab TimingText;
+
+    public Vector3 TimingTextSpawn1;
+    public Vector3 TimingTextSpawn2;
+    public float TimingTextSpawnRadius;
 
     public bool EnableEffects { get; private set; }
     public bool EnableDefibrillator { get; private set; }
     public bool EnableDeceasing { get; private set; }
-
     public bool IsBlocked { get; private set; }
 
     public int BpmTargetTolerance;
-
     public float BpmUpdateInSeconds;
     public int MinBpmToShow;
 
     public AudioSource LeftBeat;
     public AudioSource RightBeat;
 
+    public event Action<double> OnSecondBeat;
+    public event Action<BeatResult> OnFirstBeat;
+
+    public enum BeatResult
+    {
+        Perfect,
+        Good,
+        Bad,
+        NoResult,
+    }
+
     private Caterpillar<(double, double)> _beats;
     private PlayerInput _playerInput;
     private TextBox _textBox;
     private ColorDefaults _colorDefaults;
+    private TimingTextManager _timingTextManager;
+    private TimingTextPool _timingTextPool;
 
     private const string LeftBeatTrigger = "LeftBeat"; // Lub
     private const string RightBeatTrigger = "RightBeat"; // Dub
@@ -69,6 +85,8 @@ public class Heart : BaseGameObject
         _playerInput = PlayerInput.GetPlayerByIndex(0);
         _textBox = SceneObject<TextBox>.Instance();
         _colorDefaults = SceneObject<ColorDefaults>.Instance();
+        _timingTextManager = SceneObject<TimingTextManager>.Instance();
+        _timingTextPool = _timingTextManager.GetEffect(TimingText);
     }
 
     private void OnEnable()
@@ -90,6 +108,38 @@ public class Heart : BaseGameObject
     public void Activate()
     {
         gameObject.SetActive(true);
+    }
+
+    public IEnumerable<IEnumerable<Action>> SkipTutorial()
+    {
+        EnableEffects = false;
+        HeartSprite.enabled = HeartStatus.enabled = HeartCaption.enabled = BpmText.enabled = BpmCaption.enabled = TargetBpmText.enabled = false;
+        SpacebarTutorial.gameObject.SetActive(false);
+        HelpWidget.gameObject.SetActive(false);
+
+        HeartStatus.text = $"<color=#{_colorDefaults.Healthy.Color.ToHexString()}>Healthy";
+        EnableDefibrillator = false;
+        EnableDeceasing = false;
+        Deceased = false;
+
+        yield return _textBox.ShowText("First, kick start your heart", false).AsCoroutine();
+
+        Defibrillator.GiveItem(2);
+        HeartSprite.enabled = HeartStatus.enabled = HeartCaption.enabled = BpmText.enabled = BpmCaption.enabled = TargetBpmText.enabled = true;
+        HelpWidget.gameObject.SetActive(true);
+        EnableDefibrillator = true;
+        EnableDeceasing = true;
+
+        IsBlocked = false;
+
+        // wait for the player to start
+        while (Flatlined)
+        {
+            yield return TimeYields.WaitOneFrameX;
+        }
+
+        EnableEffects = true;
+        yield return _textBox.ShowText("", false).AsCoroutine();
     }
 
     public IEnumerable<IEnumerable<Action>> PlayTutorial()
@@ -338,22 +388,59 @@ public class Heart : BaseGameObject
                     if (elapsed <= beatDelay + SameBeatIdealDelayTolerance &&
                         elapsed >= beatDelay - SameBeatIdealDelayTolerance)
                     {
-                        Debug.Log("perfect");
-                        // perfect
+                        if (EnableEffects && _timingTextPool.TryGetFromPool(out var effect))
+                        {
+                            OnFirstBeat?.Invoke(BeatResult.Perfect);
+                            effect.TextComponent.text = "perfect";
+                            effect.ColorVariations = new[]
+                            {
+                                _colorDefaults.Healthy.Color,
+                                _colorDefaults.Recharging.Color,
+                                _colorDefaults.Alert.Color,
+                                _colorDefaults.Danger.Color
+                            };
+                            ;
+                            effect.transform.position = (Vector2) (Random.value > 0.5f ? TimingTextSpawn1 : TimingTextSpawn2)
+                                                        + Random.insideUnitCircle * TimingTextSpawnRadius;
+                        }
                     }
                     else if (elapsed <= beatDelay + SameBeatGoodDelayTolerance &&
                              elapsed >= beatDelay - SameBeatGoodDelayTolerance)
                     {
-                        Debug.Log("good");
-                        // good
+                        if (EnableEffects && _timingTextPool.TryGetFromPool(out var effect))
+                        {
+                            OnFirstBeat?.Invoke(BeatResult.Good);
+                            effect.TextComponent.text = "good";
+                            effect.ColorVariations = new[]
+                            {
+                                _colorDefaults.Recharging.Color,
+                                _colorDefaults.Alert.Color,
+                            };
+                            ;
+                            effect.transform.position = (Vector2)(Random.value > 0.5f ? TimingTextSpawn1 : TimingTextSpawn2)
+                                                        + Random.insideUnitCircle * TimingTextSpawnRadius;
+                        }
                     }
                     else if (elapsed <= beatDelay + SameBeatBadDelayTolerance &&
                              elapsed >= beatDelay - SameBeatBadDelayTolerance)
                     {
-                        Debug.Log("bad");
-                        // bad
+                        if (EnableEffects && _timingTextPool.TryGetFromPool(out var effect))
+                        {
+                            effect.TextComponent.text = "bad";
+                            effect.ColorVariations = new[]
+                            {
+                                _colorDefaults.Danger.Color
+                            };
+                            ;
+                            effect.transform.position = (Vector2)(Random.value > 0.5f ? TimingTextSpawn1 : TimingTextSpawn2)
+                                                        + Random.insideUnitCircle * TimingTextSpawnRadius;
+                        }
+                        OnFirstBeat?.Invoke(BeatResult.Bad);
                     }
-                    // failed beat (what to do in this case?)
+                    else
+                    {
+                        OnFirstBeat?.Invoke(BeatResult.NoResult);
+                    }
                 }
 
                 secondBeatTime = 0d;
@@ -372,6 +459,8 @@ public class Heart : BaseGameObject
                         secondBeatTime = GameTimer.TotalElapsedTimeInMilliseconds;
 
                         beatDelay = elapsed * 3;
+                        OnSecondBeat?.Invoke(beatDelay);
+
 
                         if (RightBeat != null) RightBeat.Play();
                     }
