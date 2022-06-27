@@ -36,7 +36,7 @@ public class Heart : BaseGameObject
     public float SameBeatMaxDelayInMs;
     public float SameBeatIdealDelayTolerance;
     public float SameBeatGoodDelayTolerance;
-    public float SameBeatBadDelayTolerance;
+    public float SameBeatBadDelayTolerance; 
 
     public ScriptPrefab DefibSpark;
     public ScriptPrefab TimingText;
@@ -78,6 +78,11 @@ public class Heart : BaseGameObject
     private const string LeftBeatTrigger = "LeftBeat"; // Lub
     private const string RightBeatTrigger = "RightBeat"; // Dub
     private readonly Color Transparent = new Color(0, 0, 0, 0);
+
+    public bool HasHealingBeats { get; set; }
+    public bool HasPerfectBeat { get; set; }
+
+    public bool HasBullsHeart { get; set; }
 
     protected override void OnAwake()
     {
@@ -407,8 +412,17 @@ public class Heart : BaseGameObject
                 if (secondBeatTime != 0)
                 {
                     var elapsed = firstBeatTime - secondBeatTime;
-                    if (elapsed <= beatDelay + SameBeatIdealDelayTolerance &&
-                        elapsed >= beatDelay - SameBeatIdealDelayTolerance)
+
+                    // 20% chance for forced perfect
+                    var forcedPerfect = HasPerfectBeat && Random.value <= 0.2f;
+
+                    if (
+                        (forcedPerfect && elapsed <= beatDelay + SameBeatBadDelayTolerance &&
+                         elapsed >= beatDelay - SameBeatBadDelayTolerance)
+                        ||
+                        elapsed <= beatDelay + SameBeatIdealDelayTolerance &&
+                        elapsed >= beatDelay - SameBeatIdealDelayTolerance
+                    )
                     {
                         if (EnableEffects && _timingTextPool.TryGetFromPool(out var effect))
                         {

@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Licht.Impl.Events;
 using Licht.Impl.Generation;
 using Licht.Impl.Orchestration;
 using Licht.Interfaces.Generation;
@@ -30,12 +27,15 @@ public class Shop : BaseUIObject, IGenerator<int, float>
 
     private List<ShopItem> _selectedItems;
     private Heart _heart;
+    private LevelManager _levelManager;
+
     public bool Open { get; private set; }
     protected override void OnAwake()
     {
         base.OnAwake();
         _selectedItems = new List<ShopItem>();
         _heart = SceneObject<Heart>.Instance();
+        _levelManager = SceneObject<LevelManager>.Instance();
     }
 
     public IEnumerable<IEnumerable<Action>> SpawnShop()
@@ -51,34 +51,38 @@ public class Shop : BaseUIObject, IGenerator<int, float>
         Open = false;
     }
 
-    // every 2 shops, there MUST be a healing item.
-    // other than that, everything may be random.
-
     private IEnumerable<IEnumerable<Action>> SpawnItems()
     {
         _selectedItems.Clear();
 
-        var rng = new WeightedDice<ShopItem>(ShopItems, this);
-        // prevent item repeat
-        // if no items left, skip
-        var shopItem1 = rng.Generate();
+        var selectableItems =
+            ShopItems.Where(i => _levelManager.Level >= i.MinLevel && _levelManager.Level <= i.MaxLevel).ToArray();
 
-        shopItem1.Reset();
-        shopItem1.transform.position = SpawnPoint1;
+        var spawnPoints = new[] { SpawnPoint1, SpawnPoint2, SpawnPoint3, SpawnPoint4 };
+        var targetPoints = new[] { TargetPoint1, TargetPoint2, TargetPoint3, TargetPoint4 };
 
-        yield return shopItem1.transform.GetAccessor()
-            .Position
-            .Y
-            .SetTarget(TargetPoint1.y)
-            .Over(1f)
-            .Easing(EasingYields.EasingFunction.QuadraticEaseInOut)
-            .UsingTimer(UITimer)
-            .Build();
+        var rng = new WeightedDice<ShopItem>(selectableItems, this, false);
 
-        _selectedItems.Add(shopItem1);  
-        //var shopItem2 = rng.Generate();
-        //var shopItem3 = rng.Generate();
-        //var shopItem4 = rng.Generate();
+        for (var i = 0; i < 4; i++)
+        {
+            var shopItem = rng.Generate();
+            if (shopItem == null) break;
+
+            shopItem.Reset();
+            shopItem.transform.position = spawnPoints[i];
+
+            DefaultMachinery.AddBasicMachine(shopItem.transform.GetAccessor()
+                .Position
+                .Y
+                .SetTarget(targetPoints[i].y)
+                .Over(1f)
+                .Easing(EasingYields.EasingFunction.QuadraticEaseInOut)
+                .UsingTimer(UITimer)
+                .Build());
+
+            _selectedItems.Add(shopItem);
+            yield return TimeYields.WaitMilliseconds(UITimer, 200);
+        }
     }
 
     private IEnumerable<IEnumerable<Action>> HideItems()

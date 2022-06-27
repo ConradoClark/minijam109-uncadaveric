@@ -5,6 +5,7 @@ using Licht.Unity.Builders;
 using Licht.Unity.Objects;
 using TMPro;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class LifeBar : BaseUIObject
 {
@@ -36,6 +37,13 @@ public class LifeBar : BaseUIObject
         if (CurrentLife > MaximumLife) CurrentLife = MaximumLife;
         BarText.text = $"{CurrentLife} / {MaximumLife}";
 
+        DefaultMachinery.AddBasicMachine(UpdateBar());
+    }
+
+    public void IncreaseMaximum(int amount)
+    {
+        MaximumLife += amount;
+        BarText.text = $"{CurrentLife} / {MaximumLife}";
         DefaultMachinery.AddBasicMachine(UpdateBar());
     }
 
@@ -76,7 +84,17 @@ public class LifeBar : BaseUIObject
     {
         if (_heart.Flatlined || _heart.IsDefibrillating) return;
 
-        CurrentLife -= _heart.Bpm;
+        // 20% chance to heal
+        if (_heart.HasHealingBeats && Random.value <= 0.2f)
+        {
+            CurrentLife += _heart.Bpm;
+        }
+        else
+        {
+            CurrentLife -= _heart.Bpm;
+        }
+
+        
         if (CurrentLife <= 0) CurrentLife = 0;
         BarText.text = $"{CurrentLife} / {MaximumLife}";
 

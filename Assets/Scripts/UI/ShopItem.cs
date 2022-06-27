@@ -40,6 +40,12 @@ public class ShopItem : BaseUIObject, IWeighted<float>
 
     public TMP_Text CostText;
 
+    public int MinLevel = 1;
+    public int MaxLevel = 9999;
+
+    public int MaxUses;
+    private int _currentUses;
+
     protected override void OnAwake()
     {
         base.OnAwake();
@@ -53,10 +59,14 @@ public class ShopItem : BaseUIObject, IWeighted<float>
         _points = SceneObject<Points>.Instance();
         SoldOut.enabled = SoldOutText.enabled = false;
         CostText.text = Cost.ToString();
+        _currentUses = MaxUses;
     }
 
     public void Reset()
     {
+        _currentUses--;
+        if (MaxUses > 0 && _currentUses > 0) return;
+
         Bought = false;
         SoldOut.enabled = SoldOutText.enabled = false;
     }
