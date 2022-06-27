@@ -60,6 +60,8 @@ public class Heart : BaseGameObject
     public event Action<double> OnSecondBeat;
     public event Action<BeatResult> OnFirstBeat;
 
+    public TMP_Text TargetBpmIndicator;
+
     public enum BeatResult
     {
         Perfect,
@@ -74,6 +76,7 @@ public class Heart : BaseGameObject
     private ColorDefaults _colorDefaults;
     private TimingTextManager _timingTextManager;
     private TimingTextPool _timingTextPool;
+    private LifeBar _lifeBar;
 
     private const string LeftBeatTrigger = "LeftBeat"; // Lub
     private const string RightBeatTrigger = "RightBeat"; // Dub
@@ -84,6 +87,11 @@ public class Heart : BaseGameObject
 
     public bool HasBullsHeart { get; set; }
 
+    public void InstantFlatline()
+    {
+        HandleFlatline();
+    }
+
     protected override void OnAwake()
     {
         base.OnAwake();
@@ -92,6 +100,7 @@ public class Heart : BaseGameObject
         _colorDefaults = SceneObject<ColorDefaults>.Instance();
         _timingTextManager = SceneObject<TimingTextManager>.Instance();
         _timingTextPool = _timingTextManager.GetEffect(TimingText);
+        _lifeBar = SceneObject<LifeBar>.Instance();
     }
 
     private void OnEnable()
@@ -108,6 +117,19 @@ public class Heart : BaseGameObject
     {
         TargetBpm = targetBpm;
         TargetBpmText.text = targetBpm == 0 ? "" : $"<color=#d83d3d>{targetBpm}</color> target";
+
+        DefaultMachinery.AddBasicMachine(ShowChangeBpmIndicator());
+    }
+
+    private IEnumerable<IEnumerable<Action>> ShowChangeBpmIndicator()
+    {
+        for (var i = 0; i < 20; i++)
+        {
+            TargetBpmIndicator.enabled = !TargetBpmIndicator.enabled;
+            yield return TimeYields.WaitMilliseconds(GameTimer, 100);
+        }
+
+        TargetBpmIndicator.enabled = false;
     }
 
     public void Activate()
@@ -602,6 +624,9 @@ public class Heart : BaseGameObject
         if (EnableDefibrillator && Defibrillator.UseItem())
         {
             if (IsDefibrillating) return;
+
+            _lifeBar.Heal(Mathf.CeilToInt(_lifeBar.MaximumLife * 0.1f));
+
             // used defibrillator
             Debug.Log("used defibrillator");
             IsDefibrillating = true;

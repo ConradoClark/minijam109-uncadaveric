@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using Licht.Unity.Objects;
+﻿using Licht.Unity.Objects;
 using TMPro;
 using Unity.VisualScripting;
 

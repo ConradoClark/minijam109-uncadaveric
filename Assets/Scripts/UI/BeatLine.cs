@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using Licht.Impl.Orchestration;
 using Licht.Unity.Extensions;
@@ -16,9 +15,9 @@ public class BeatLine : BaseGameObject
     private ColorDefaults _colorDefaults;
     private Points _points;
 
-    private const float PerfectBeatMultiplier = 100;
-    private const float GoodBeatMultiplier = 50;
-    private const float BadBeatMultiplier = 10;
+    private const float PerfectBeatMultiplier = 150;
+    private const float GoodBeatMultiplier = 100;
+    private const float BadBeatMultiplier = 30;
 
     protected override void OnAwake()
     {

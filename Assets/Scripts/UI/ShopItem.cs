@@ -65,7 +65,7 @@ public class ShopItem : BaseUIObject, IWeighted<float>
     public void Reset()
     {
         _currentUses--;
-        if (MaxUses > 0 && _currentUses > 0) return;
+        if (MaxUses > 0 && _currentUses <= 0) return;
 
         Bought = false;
         SoldOut.enabled = SoldOutText.enabled = false;

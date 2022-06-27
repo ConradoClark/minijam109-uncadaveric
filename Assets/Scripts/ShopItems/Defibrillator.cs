@@ -1,6 +1,4 @@
-﻿using Licht.Unity.Objects;
-
-namespace Assets.Scripts.ShopItems
+﻿namespace Assets.Scripts.ShopItems
 {
     public class Defibrillator : ShopItemFunction
     {

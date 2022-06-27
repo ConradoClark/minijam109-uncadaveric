@@ -1,9 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Licht.Impl.Orchestration;
 using Licht.Unity.Objects;
-using UnityEngine;
 
 public class StartCutscene : BaseUIObject
 {

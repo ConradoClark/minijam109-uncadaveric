@@ -94,8 +94,11 @@ public class LifeBar : BaseUIObject
             CurrentLife -= _heart.Bpm;
         }
 
-        
-        if (CurrentLife <= 0) CurrentLife = 0;
+        if (CurrentLife <= 0)
+        {
+            CurrentLife = 0;
+            _heart.InstantFlatline();
+        }
         BarText.text = $"{CurrentLife} / {MaximumLife}";
 
         DefaultMachinery.AddBasicMachine(UpdateBar());
@@ -119,7 +122,7 @@ public class LifeBar : BaseUIObject
         {
             yield return new LerpBuilder(f => BarSprite.size = new Vector2(f, BarSprite.size.y),
                     () => BarSprite.size.x)
-                .SetTarget(GetTargetSize)
+                .SetTarget(GetTargetSize())
                 .Over(0.35f)
                 .BreakIf(() => !_updating, false)
                 .Easing(EasingYields.EasingFunction.QuadraticEaseInOut)

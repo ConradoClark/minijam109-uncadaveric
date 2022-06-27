@@ -7,14 +7,19 @@ public class Yoga : BaseChallenge
     public int TargetBpm;
     public override IEnumerable<IEnumerable<Action>> HandleChallenge()
     {
-        yield return TextBox.ShowText($"Starting Activity: {ActivityName}", false).AsCoroutine();
+        IsActive = true;
         Heart.SetTargetBpm(TargetBpm);
+        yield return TextBox.ShowText($"Starting Activity: {ActivityName}", false).AsCoroutine();
         UIComponents.SetActivity(ActivityName, ColorDefaults.Recharging.Color);
 
         ActivityClock.SetTimer(20);
 
+        DefaultMachinery.AddBasicMachine(HandleSpawns());
+
         yield return TimeYields.WaitSeconds(GameTimer, 16);
         yield return TextBox.ShowText($"Finishing Activity: {ActivityName}", false).AsCoroutine();
-        yield return TimeYields.WaitSeconds(GameTimer, 4);
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
+        IsActive = false;
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
     }
 }
