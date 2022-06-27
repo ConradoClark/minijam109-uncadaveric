@@ -75,7 +75,7 @@ public class Shop : BaseUIObject, IGenerator<int, float>
             .UsingTimer(UITimer)
             .Build();
 
-        _selectedItems.Add(shopItem1);
+        _selectedItems.Add(shopItem1);  
         //var shopItem2 = rng.Generate();
         //var shopItem3 = rng.Generate();
         //var shopItem4 = rng.Generate();
