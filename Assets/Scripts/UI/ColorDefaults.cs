@@ -11,4 +11,6 @@ public class ColorDefaults : MonoBehaviour
     public ScriptColor Recharging;
     public ScriptColor Alert;
     public ScriptColor Danger;
+    public ScriptColor Dark;
+    public ScriptColor Transparent;
 }

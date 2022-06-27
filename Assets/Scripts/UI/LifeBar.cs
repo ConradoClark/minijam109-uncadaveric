@@ -11,6 +11,7 @@ public class LifeBar : BaseUIObject
     public int MaximumLife;
     public int CurrentLife { get; private set; }
     private Heart _heart;
+    private Shop _shop;
 
     private bool _updating;
 
@@ -29,14 +30,23 @@ public class LifeBar : BaseUIObject
         BarBorder.enabled = BarSprite.enabled = BarText.enabled = false;
     }
 
+    public void Heal(int amount)
+    {
+        CurrentLife += amount;
+        if (CurrentLife > MaximumLife) CurrentLife = MaximumLife;
+        BarText.text = $"{CurrentLife} / {MaximumLife}";
+
+        DefaultMachinery.AddBasicMachine(UpdateBar());
+    }
+
     protected override void OnAwake()
     {
         CurrentLife = MaximumLife;
         BarSprite.size = new Vector2(GetTargetSize(), BarSprite.size.y);
         BarText.text = $"{CurrentLife} / {MaximumLife}";
         _heart = SceneObject<Heart>.Instance();
+        _shop = SceneObject<Shop>.Instance();
 
-        
     }
 
     private void OnEnable()
@@ -54,7 +64,7 @@ public class LifeBar : BaseUIObject
     {
         while (isActiveAndEnabled)
         {
-            if (!_heart.EnableDeceasing || !_heart.enabled) DisableUI();
+            if (!_shop.Open && (!_heart.EnableDeceasing || !_heart.enabled)) DisableUI();
             else if (!BarBorder.enabled) EnableUI();
 
 

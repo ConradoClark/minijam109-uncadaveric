@@ -17,6 +17,9 @@ public class TextBox : BaseUIObject
     public bool Skippable;
 
     private PlayerInput _playerInput;
+
+    private bool _showingText;
+    private string _currentText;
     protected override void OnAwake()
     {
         base.OnAwake();
@@ -24,8 +27,18 @@ public class TextBox : BaseUIObject
     }
 
 
-    public IEnumerable<IEnumerable<Action>> ShowText(string text, bool showCursor = true)
+    public IEnumerable<IEnumerable<Action>> ShowText(string text, bool showCursor = true, bool overlap = false)
     {
+        while (_showingText)
+        {
+            if (_currentText == text) yield break;
+            if (overlap) _showingText = false;
+
+            yield return TimeYields.WaitOneFrameX;
+        }
+
+        _showingText = true;
+        _currentText = text;
         CursorSprite.enabled = showCursor;
         TextComponent.text = "";
 
@@ -37,7 +50,7 @@ public class TextBox : BaseUIObject
             TextComponent.text = text[..i];
             i++;
             yield return TimeYields.WaitMilliseconds(UITimer, LetterFrequencyInMs,
-                breakCondition: () => showCursor && Skippable && confirm.WasPerformedThisFrame());
+                breakCondition: () =>!_showingText || showCursor && Skippable && confirm.WasPerformedThisFrame());
 
             // Skip
             if (showCursor && Skippable && confirm.WasPerformedThisFrame())
@@ -46,7 +59,7 @@ public class TextBox : BaseUIObject
             }
         }
 
-        if (showCursor)
+        if (showCursor && _showingText)
         {
             CursorSprite.enabled = true;
             yield return TimeYields.WaitOneFrameX;
@@ -61,5 +74,6 @@ public class TextBox : BaseUIObject
         }
 
         yield return TimeYields.WaitOneFrameX;
+        _showingText = false;
     }
 }

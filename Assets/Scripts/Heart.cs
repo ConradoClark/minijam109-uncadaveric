@@ -110,6 +110,30 @@ public class Heart : BaseGameObject
         gameObject.SetActive(true);
     }
 
+    public IEnumerable<IEnumerable<Action>> EnterShopMode(Func<bool> checkShop, Action onClose)
+    {
+        EnableDeceasing = false;
+        EnableEffects = false;
+        IsBlocked = true;
+
+        while (checkShop())
+        {
+            yield return TimeYields.WaitOneFrameX;
+        }
+
+        onClose();
+
+        yield return _textBox.ShowText("Kick start your heart to proceed.", false).AsCoroutine();
+        IsBlocked = false;
+        while (Flatlined)
+        {
+            yield return TimeYields.WaitOneFrameX;
+        }
+
+        EnableEffects = true;
+        EnableDeceasing = true;
+    }
+
     public IEnumerable<IEnumerable<Action>> SkipTutorial()
     {
         EnableEffects = false;
