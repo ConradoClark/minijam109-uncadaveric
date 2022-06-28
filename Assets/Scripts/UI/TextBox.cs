@@ -10,6 +10,7 @@ public class TextBox : BaseUIObject
 {
     public float LetterFrequencyInMs;
     public SpriteRenderer CursorSprite;
+    public SpriteRenderer CursorHelpSprite;
     public TMP_Text TextComponent;
     public ScriptInput ConfirmButton;
     public bool Skippable;
@@ -37,7 +38,7 @@ public class TextBox : BaseUIObject
 
         _showingText = true;
         _currentText = text;
-        CursorSprite.enabled = showCursor;
+        CursorSprite.enabled = CursorHelpSprite.enabled = showCursor;
         TextComponent.text = "";
 
         var confirm = _playerInput.actions[ConfirmButton.ActionName];
@@ -59,7 +60,7 @@ public class TextBox : BaseUIObject
 
         if (showCursor && _showingText)
         {
-            CursorSprite.enabled = true;
+            CursorSprite.enabled = CursorHelpSprite.enabled = true;
             yield return TimeYields.WaitOneFrameX;
 
             while (!confirm.WasPerformedThisFrame())
@@ -68,7 +69,7 @@ public class TextBox : BaseUIObject
             }   
 
             TextComponent.text = "";
-            CursorSprite.enabled = false;
+            CursorSprite.enabled = CursorHelpSprite.enabled = false;
         }
 
         yield return TimeYields.WaitOneFrameX;

@@ -10,7 +10,7 @@ namespace Assets.Scripts.ShopItems
         protected override void OnAwake()
         {
             base.OnAwake();
-            _lifeBar = SceneObject<LifeBar>.Instance();
+            _lifeBar = SceneObject<LifeBar>.Instance(true);
         }
 
         public override void Execute()

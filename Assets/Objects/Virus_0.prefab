@@ -68,7 +68,7 @@ MonoBehaviour:
   Speed: 0.35
   HitPoints: 10
   HitCooldownInMs: 100
-  ActivateOnAwake: 1
+  ActivateOnAwake: 0
   SpriteRenderer: {fileID: 6661419825459728596}
   Collider: {fileID: 7115367427803408723}
   MousePos: {fileID: 11400000, guid: 2a3095a4e819ce147b4b2cb7f592f625, type: 2}

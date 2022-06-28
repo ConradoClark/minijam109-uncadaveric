@@ -13,7 +13,13 @@ using Random = UnityEngine.Random;
 
 public class Heart : BaseGameObject
 {
+    public Transform HeartLaserHelp;
+    public Transform EndScreen;
+    public Transform SkipTutorialHelp;
+
     public ScriptInput HeartBeatInput;
+    public ScriptInput SkipTutorialInput;
+
     public int Bpm { get; private set; }
     public int TargetBpm { get; private set; }
     public bool Flatlined { get; private set; }
@@ -40,6 +46,7 @@ public class Heart : BaseGameObject
 
     public ScriptPrefab DefibSpark;
     public ScriptPrefab TimingText;
+    public ScriptPrefab Virus;
 
     public Vector3 TimingTextSpawn1;
     public Vector3 TimingTextSpawn2;
@@ -78,6 +85,8 @@ public class Heart : BaseGameObject
     private TimingTextPool _timingTextPool;
     private LifeBar _lifeBar;
 
+    private bool _inTutorial;
+
     private const string LeftBeatTrigger = "LeftBeat"; // Lub
     private const string RightBeatTrigger = "RightBeat"; // Dub
     private readonly Color Transparent = new Color(0, 0, 0, 0);
@@ -100,7 +109,7 @@ public class Heart : BaseGameObject
         _colorDefaults = SceneObject<ColorDefaults>.Instance();
         _timingTextManager = SceneObject<TimingTextManager>.Instance();
         _timingTextPool = _timingTextManager.GetEffect(TimingText);
-        _lifeBar = SceneObject<LifeBar>.Instance();
+        _lifeBar = SceneObject<LifeBar>.Instance(true);
     }
 
     private void OnEnable()
@@ -198,12 +207,31 @@ public class Heart : BaseGameObject
         EnableEffects = false;
         HeartSprite.enabled = HeartStatus.enabled = HeartCaption.enabled = BpmText.enabled = BpmCaption.enabled = TargetBpmText.enabled = false;
         SpacebarTutorial.gameObject.SetActive(true);
+        SkipTutorialHelp.gameObject.SetActive(true);
         HelpWidget.gameObject.SetActive(false);
+
+        var skipAction = _playerInput.actions[SkipTutorialInput.ActionName];
+
         yield return _textBox.ShowText("How was the sound of your beating heart?", false).AsCoroutine();
 
     checkBeats:
         while (_beats.Length != _beats.TailSize || Bpm == 0)
         {
+            if (skipAction.WasPerformedThisFrame())
+            {
+                SkipTutorialHelp.gameObject.SetActive(false);
+                yield return SkipTutorial().AsCoroutine();
+                yield break;
+            }
+
+            if (_beats.TailSize == 5 && _beats.GetTail(5).Count(b => b.Item2 == 0) >= 3)
+            {
+                yield return _textBox.ShowText("Heartbeats come in two. Lub Dub. --- pause --- Lub Dub. Now, try again.", false).AsCoroutine();
+                _beats.Clear();
+
+                goto checkBeats;
+            }
+
             yield return TimeYields.WaitOneFrameX;
         }
 
@@ -211,17 +239,8 @@ public class Heart : BaseGameObject
         HelpWidget.gameObject.SetActive(true);
         HeartSprite.enabled = true;
 
-        Debug.Log("Current BPM: " + Bpm);
-
-        if (Bpm < 50)
-        {
-            yield return _textBox.ShowText("To simulate the living, this heart of yours needs to beat a bit faster...", false).AsCoroutine();
-
-            _beats.Clear();
-
-            goto checkBeats;
-        }
-
+        SkipTutorialHelp.gameObject.SetActive(false);
+        _inTutorial = true;
 
         if (Bpm < 50)
         {
@@ -366,12 +385,13 @@ public class Heart : BaseGameObject
         }
 
         yield return TimeYields.WaitSeconds(GameTimer, 1);
+        
         yield return _textBox.ShowText("The defibrillator has been used! Now, start your heart again!", false).AsCoroutine();
 
         while (Flatlined)
         {
             yield return TimeYields.WaitOneFrameX;
-            if (!IsDefibrillating)
+            if (!IsDefibrillating && Flatlined)
             {
                 yield return _textBox.ShowText("Oh, you died for good. Again. Let's try it once more.", false).AsCoroutine();
                 yield return TimeYields.WaitSeconds(GameTimer, 2);
@@ -386,10 +406,42 @@ public class Heart : BaseGameObject
         yield return TimeYields.WaitSeconds(GameTimer, 2);
 
         SetTargetBpm(0);
+
+        yield return _textBox.ShowText("You see the green bar next to your heart?").AsCoroutine();
+        yield return _textBox.ShowText("Even an imaginary heart can't beat forever. It has a durability.").AsCoroutine();
+        yield return _textBox.ShowText("I'll mend your heart, but you must take good care of it from now on.").AsCoroutine();
+
+        _lifeBar.Heal(_lifeBar.MaximumLife);
+
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
+
+        yield return _textBox.ShowText("Speaking of which, you got to learn how to defend it.").AsCoroutine();
+        yield return _textBox.ShowText("You see, an imaginary heart is precious to some of the viruses here.").AsCoroutine();
+        yield return _textBox.ShowText("(Yes the purgatory also has viruses, go figure)").AsCoroutine();
+
+        yield return _textBox.ShowText("If by any chance you stumble across one, please melt it.").AsCoroutine();
+
+        HeartLaserHelp.gameObject.SetActive(true);
+
+        if (Virus.Pool.TryGetFromPool(out var virus))
+        {
+            virus.Component.transform.position = new Vector3(-8f, -3f);
+
+            while (virus.IsActive)
+            {
+                yield return TimeYields.WaitOneFrameX;
+            }
+        }
+
+        yield return _textBox.ShowText("That will show them.").AsCoroutine();
+
+        HeartLaserHelp.gameObject.SetActive(false);
+
         yield return _textBox.ShowText("These are the basics of the purgatory. For now.").AsCoroutine();
         yield return _textBox.ShowText("One last thing. Timing your heart correctly will pay off.").AsCoroutine();
         yield return _textBox.ShowText("You're going to face different challenges, and must act accordingly.").AsCoroutine();
-        yield return _textBox.ShowText("Here's a couple defibrillators. Please don't die on me now.").AsCoroutine();
+        yield return _textBox.ShowText("To free your mind of this purgatory, your imaginary heart must thrive.").AsCoroutine();
+        yield return _textBox.ShowText("Here's a couple defibrillators to help you stay alive.").AsCoroutine();
 
         Defibrillator.GiveItem(2);
         yield return _textBox.ShowText("I'll also give you some time to kick start your heart again. Good Luck!").AsCoroutine();
@@ -401,6 +453,9 @@ public class Heart : BaseGameObject
         {
             yield return TimeYields.WaitOneFrameX;
         }
+
+        EnableEffects = true;
+        _inTutorial = false;
 
         // end of the tutorial, go to game loop
     }
@@ -572,6 +627,7 @@ public class Heart : BaseGameObject
         DefaultMachinery.AddBasicMachine(DefibEffect());
         yield return TimeYields.WaitSeconds(GameTimer, 12, breakCondition: () => !Flatlined);
 
+        yield return TimeYields.WaitOneFrameX;
         IsDefibrillating = false;
         HeartSprite.material.SetColor("_Colorize", Transparent);
         if (!Flatlined)
@@ -627,9 +683,8 @@ public class Heart : BaseGameObject
 
             _lifeBar.Heal(Mathf.CeilToInt(_lifeBar.MaximumLife * 0.1f));
 
-            // used defibrillator
-            Debug.Log("used defibrillator");
             IsDefibrillating = true;
+            Flatlined = true;
             Deceased = false;
             _beats.Clear();
             HeartStatus.text = $"<color=#{_colorDefaults.Recharging.Color.ToHexString()}>Defibrillating";
@@ -640,6 +695,16 @@ public class Heart : BaseGameObject
         {
             Deceased = true;
             HeartStatus.text = $"<color=#{_colorDefaults.Danger.Color.ToHexString()}>Flatlined";
+
+            if (_inTutorial) return; // if in tutorial, don't show end screen lol
+
+            DefaultMachinery.AddBasicMachine(ShowEndScreen());
         }
+    }
+
+    private IEnumerable<IEnumerable<Action>> ShowEndScreen()
+    {
+        yield return TimeYields.WaitSeconds(GameTimer, 2);
+        EndScreen.gameObject.SetActive(true);
     }
 }
