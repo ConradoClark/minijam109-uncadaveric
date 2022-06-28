@@ -156,6 +156,12 @@ public class Virus : EffectPoolable
     {
         while (isActiveAndEnabled)
         {
+            if (SpriteRenderer == null)
+            {
+                yield return TimeYields.WaitOneFrameX;
+                continue;
+            }
+
             yield return SpriteRenderer.transform.GetAccessor()
                 .LocalPosition
                 .Y

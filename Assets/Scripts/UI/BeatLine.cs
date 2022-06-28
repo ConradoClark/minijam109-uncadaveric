@@ -15,9 +15,9 @@ public class BeatLine : BaseGameObject
     private ColorDefaults _colorDefaults;
     private Points _points;
 
-    private const float PerfectBeatMultiplier = 150;
-    private const float GoodBeatMultiplier = 100;
-    private const float BadBeatMultiplier = 30;
+    private const float PerfectBeatMultiplier = 180;
+    private const float GoodBeatMultiplier = 130;
+    private const float BadBeatMultiplier = 40;
 
     protected override void OnAwake()
     {

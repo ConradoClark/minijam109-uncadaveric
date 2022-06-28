@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Licht.Impl.Generation;
 using Licht.Impl.Orchestration;
 using Licht.Interfaces.Generation;
@@ -17,6 +18,8 @@ public class ChallengeHandler : BaseGameObject, IGenerator<int,float>, IActivabl
     private ChallengeComponents _challengeComponents;
     private ColorDefaults _colorDefaults;
     private Shop _shop;
+    private LevelManager _levelManager;
+
     public bool IsActive { get; private set; }
 
     public int DefaultShopIn;
@@ -25,6 +28,7 @@ public class ChallengeHandler : BaseGameObject, IGenerator<int,float>, IActivabl
     public event Action OnChallengeEnd;
     public event Action OnChallengeHandlerActivated;
     public event Action OnShopStart;
+    private BaseChallenge _lastChallenge;
 
     public bool Activate()
     {
@@ -42,6 +46,7 @@ public class ChallengeHandler : BaseGameObject, IGenerator<int,float>, IActivabl
         _challengeComponents = SceneObject<ChallengeComponents>.Instance();
         _colorDefaults = SceneObject<ColorDefaults>.Instance();
         _shop = SceneObject<Shop>.Instance();
+        _levelManager = SceneObject<LevelManager>.Instance();
     }
 
     private void OnEnable()
@@ -51,7 +56,6 @@ public class ChallengeHandler : BaseGameObject, IGenerator<int,float>, IActivabl
 
     private IEnumerable<IEnumerable<Action>> HandleChallenges()
     {
-        var dice = new WeightedDice<BaseChallenge>(Challenges, this);
         ShopIn = DefaultShopIn;
         while (isActiveAndEnabled)
         {
@@ -62,7 +66,12 @@ public class ChallengeHandler : BaseGameObject, IGenerator<int,float>, IActivabl
 
             OnChallengeHandlerActivated?.Invoke();
 
+            var availableChallenges =
+                Challenges.Where(c => _levelManager.Level >= c.LevelMin && _levelManager.Level <= c.LevelMax && c != _lastChallenge);
+            var dice = new WeightedDice<BaseChallenge>(availableChallenges, this);
             var challenge = dice.Generate();
+
+            _lastChallenge = challenge;
             yield return challenge.HandleChallenge().AsCoroutine();
 
             ShopIn -= 1;

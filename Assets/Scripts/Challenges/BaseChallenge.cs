@@ -27,6 +27,9 @@ public abstract class BaseChallenge : BaseGameObject, IWeighted<float>
     public float MinVirusDensity;
     public float MaxVirusDensity;
 
+    public int LevelMin = 0;
+    public int LevelMax = 999;
+
     protected sealed override void OnAwake()
     {
         base.OnAwake();

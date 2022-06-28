@@ -206,13 +206,13 @@ public class Heart : BaseGameObject
     {
         EnableEffects = false;
         HeartSprite.enabled = HeartStatus.enabled = HeartCaption.enabled = BpmText.enabled = BpmCaption.enabled = TargetBpmText.enabled = false;
-        SpacebarTutorial.gameObject.SetActive(true);
-        SkipTutorialHelp.gameObject.SetActive(true);
         HelpWidget.gameObject.SetActive(false);
 
         var skipAction = _playerInput.actions[SkipTutorialInput.ActionName];
 
         yield return _textBox.ShowText("How was the sound of your beating heart?", false).AsCoroutine();
+        SpacebarTutorial.gameObject.SetActive(true);
+        SkipTutorialHelp.gameObject.SetActive(true);
 
     checkBeats:
         while (_beats.Length != _beats.TailSize || Bpm == 0)

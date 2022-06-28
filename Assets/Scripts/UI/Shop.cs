@@ -51,6 +51,14 @@ public class Shop : BaseUIObject, IGenerator<int, float>
         Open = false;
     }
 
+    public IEnumerable<IEnumerable<Action>> ShuffleShop()
+    {
+        if (!Open)
+            yield break;
+        yield return HideItemsAndWait().AsCoroutine();
+        yield return SpawnItems().AsCoroutine();
+    }
+
     private IEnumerable<IEnumerable<Action>> SpawnItems()
     {
         _selectedItems.Clear();
@@ -101,6 +109,23 @@ public class Shop : BaseUIObject, IGenerator<int, float>
                 .Build());
 
             yield return TimeYields.WaitMilliseconds(UITimer, 100);
+        }
+    }
+
+    private IEnumerable<IEnumerable<Action>> HideItemsAndWait()
+    {
+        var points = new[] { SpawnPoint1, SpawnPoint2, SpawnPoint3, SpawnPoint4 };
+        for (var i = 0; i < _selectedItems.Count; i++)
+        {
+            var shopItem = _selectedItems[i];
+            yield return shopItem.transform.GetAccessor()
+                .Position
+                .Y
+                .SetTarget(points[i].y)
+                .Over(.4f)
+                .Easing(EasingYields.EasingFunction.QuadraticEaseInOut)
+                .UsingTimer(UITimer)
+                .Build();
         }
     }
 
