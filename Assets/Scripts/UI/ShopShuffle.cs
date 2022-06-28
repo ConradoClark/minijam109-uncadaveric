@@ -51,7 +51,6 @@ public class ShopShuffle : BaseUIObject
     {
         while (isActiveAndEnabled)
         {
-            mainloop:
             BG.material.SetColor("_Colorize", _colorDefaults.Dark.Color);
 
             while (!_shop.Open)
